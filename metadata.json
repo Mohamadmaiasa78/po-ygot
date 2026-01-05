@@ -1,0 +1,5 @@
+{
+  "name": "Copy of PolyGlot Engine",
+  "description": "An AI-powered codebase migration tool that analyzes folder structures and translates code between languages using Google Gemini models.",
+  "requestFramePermissions": []
+}
