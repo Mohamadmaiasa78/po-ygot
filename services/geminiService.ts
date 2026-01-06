@@ -1,17 +1,14 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
-// Ensure the API key is retrieved from the environment variable as per strict guidelines
+// Ensure the API key is retrieved from the environment variable
 const apiKey = process.env.API_KEY || ''; 
-
-// We use the new instance for each call to ensure fresh config if needed, 
-// though typically one instance is fine. The guidelines suggest creating it before calls.
 
 export const analyzeProjectStructure = async (filePaths: string[]): Promise<string> => {
   if (!apiKey) throw new Error("API Key is missing.");
 
   const ai = new GoogleGenAI({ apiKey });
   
-  // Truncate list if too long to avoid token limits in a demo
+  // Truncate list if too long to avoid token limits
   const limitedPaths = filePaths.slice(0, 100); 
   const prompt = `
     Analyze this list of file paths from a project folder:
@@ -25,14 +22,15 @@ export const analyzeProjectStructure = async (filePaths: string[]): Promise<stri
   `;
 
   try {
+    // Use Flash for analysis as it's faster and uses less quota
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview', // Good for fast text analysis
+      model: 'gemini-3-flash-preview', 
       contents: prompt,
     });
     return response.text || "Analysis failed to produce text.";
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
-    return "Failed to analyze project structure. Please check your API key or network connection.";
+    return "Failed to analyze project structure. Please check your API key.";
   }
 };
 
@@ -62,8 +60,9 @@ export const translateCode = async (
   `;
 
   try {
+    // Use Gemini 3 Pro Preview for high-quality code translation
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview', // Better for complex coding tasks
+      model: 'gemini-3-pro-preview', 
       contents: prompt,
     });
     
@@ -71,8 +70,14 @@ export const translateCode = async (
     // Clean up if the model adds markdown despite instructions
     text = text.replace(/^```[a-z]*\n/i, '').replace(/\n```$/, '');
     return text;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini Translation Error:", error);
-    return `// Error translating file: ${filename}\n// ${error}`;
+    
+    // Check for quota limits specifically
+    if (error.message?.includes('429')) {
+       return `// Error: Rate limit exceeded (429). Please wait a moment and try again.\n// File: ${filename}`;
+    }
+    
+    return `// Error translating file: ${filename}\n// ${error.message || error}`;
   }
 };
