@@ -11,6 +11,9 @@ interface SidebarProps {
   onMigrate: () => void;
   folderName: string | null;
   fileCount: number;
+  progress: number;
+  currentProcessingFile: string | null;
+  onViewCurrent: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -22,10 +25,15 @@ const Sidebar: React.FC<SidebarProps> = ({
   status,
   onMigrate,
   folderName,
-  fileCount
+  fileCount,
+  progress,
+  currentProcessingFile,
+  onViewCurrent
 }) => {
   
-  const isProcessing = status === AppStatus.ANALYZING || status === AppStatus.CONVERTING;
+  const isConverting = status === AppStatus.CONVERTING;
+  const isAnalyzing = status === AppStatus.ANALYZING;
+  const isProcessing = isConverting || isAnalyzing;
 
   return (
     <div className="w-80 bg-gray-950 border-r border-gray-800 flex flex-col h-full shadow-2xl z-10">
@@ -94,7 +102,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <select 
                   value={sourceLang}
                   onChange={(e) => setSourceLang(e.target.value)}
-                  className="w-full bg-gray-900 text-sm text-gray-300 border border-gray-700 rounded px-3 py-2 outline-none focus:border-accent-blue appearance-none"
+                  disabled={isProcessing}
+                  className="w-full bg-gray-900 text-sm text-gray-300 border border-gray-700 rounded px-3 py-2 outline-none focus:border-accent-blue appearance-none disabled:opacity-50"
                 >
                   <option value="Auto-detect">Auto-detect</option>
                   {SUPPORTED_LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
@@ -113,7 +122,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <select 
                   value={targetLang}
                   onChange={(e) => setTargetLang(e.target.value)}
-                  className="w-full bg-gray-900 text-sm text-gray-300 border border-gray-700 rounded px-3 py-2 outline-none focus:border-accent-blue appearance-none"
+                  disabled={isProcessing}
+                  className="w-full bg-gray-900 text-sm text-gray-300 border border-gray-700 rounded px-3 py-2 outline-none focus:border-accent-blue appearance-none disabled:opacity-50"
                 >
                   {SUPPORTED_LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
@@ -127,20 +137,59 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Footer Action */}
       <div className="p-4 border-t border-gray-800 bg-gray-900/50">
-        <button
-          onClick={onMigrate}
-          disabled={!folderName || isProcessing}
-          className={`w-full py-3 rounded flex items-center justify-center gap-2 text-sm font-bold shadow-lg transition-all
-            ${!folderName || isProcessing 
-              ? 'bg-gray-800 text-gray-500 cursor-not-allowed' 
-              : 'bg-accent-blue hover:bg-blue-600 text-white shadow-blue-900/20'}`}
-        >
-          {isProcessing ? (
-             <><i className="fa-solid fa-circle-notch fa-spin"></i> Processing...</>
-          ) : (
-             <><i className="fa-solid fa-wand-magic-sparkles"></i> Execute Migration</>
-          )}
-        </button>
+        {isProcessing ? (
+          <div className="space-y-3 bg-gray-900/80 p-3 rounded-lg border border-gray-800">
+             {isAnalyzing ? (
+                 <div className="flex items-center justify-center gap-2 text-sm text-accent-blue font-bold py-2">
+                    <i className="fa-solid fa-circle-notch fa-spin"></i> Analyzing Structure...
+                 </div>
+             ) : (
+                <>
+                  <div className="flex items-center justify-between text-xs text-gray-400">
+                    <span className="font-medium text-white">Conversion Progress</span>
+                    <span className="font-mono text-accent-blue">{progress}%</span>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-accent-blue transition-all duration-300 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                      style={{ width: `${progress}%` }}
+                    ></div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <div className="flex-1 min-w-0">
+                       <p className="text-[10px] uppercase text-gray-600 font-bold mb-0.5">Processing</p>
+                       <p className="text-[10px] text-gray-300 truncate font-mono" title={currentProcessingFile || ''}>
+                          {currentProcessingFile ? `...${currentProcessingFile.split('/').pop()}` : 'Initializing...'}
+                       </p>
+                    </div>
+                    {currentProcessingFile && (
+                      <button 
+                        onClick={onViewCurrent}
+                        title="View Active File"
+                        className="w-8 h-8 flex items-center justify-center bg-gray-800 hover:bg-gray-700 hover:text-white text-accent-blue rounded border border-gray-700 transition"
+                      >
+                        <i className="fa-solid fa-eye text-xs"></i>
+                      </button>
+                    )}
+                  </div>
+                </>
+             )}
+          </div>
+        ) : (
+          <button
+            onClick={onMigrate}
+            disabled={!folderName}
+            className={`w-full py-3 rounded flex items-center justify-center gap-2 text-sm font-bold shadow-lg transition-all
+              ${!folderName 
+                ? 'bg-gray-800 text-gray-500 cursor-not-allowed' 
+                : 'bg-accent-blue hover:bg-blue-600 text-white shadow-blue-900/20'}`}
+          >
+            <i className="fa-solid fa-wand-magic-sparkles"></i> Execute Migration
+          </button>
+        )}
       </div>
     </div>
   );

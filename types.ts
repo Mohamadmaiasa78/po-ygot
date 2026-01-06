@@ -33,6 +33,14 @@ export enum AppStatus {
   ERROR = 'ERROR'
 }
 
+export interface MigrationStats {
+  total: number;
+  processed: number;
+  success: number;
+  failed: number;
+  skipped: number;
+}
+
 export const SUPPORTED_LANGUAGES = [
   'JavaScript',
   'TypeScript',
